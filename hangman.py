@@ -2488,6 +2488,10 @@ while (turn > -1) :
         turn = turn -1
         if(turn == -1):
                 break
+    if t == word:
+       print(" You won!!")
+       print(" ".join(word))
+       exit(0)
     k=" ".join(t)
     print(k)
 print("The word was", end = ' : ' )
