@@ -53,12 +53,22 @@ if start == 'user' :
         upos = list(upos)
         upos = list(map(int, upos))
         t[upos[0]][upos[1]] = user
-        if (t[0][0] == user and t[2][2] == user) or (t[0][1] == user and t[2][0] == user) :
+        if (t[0][0] == user and t[2][2] == user) :
+            t[1][2]= comp
             for i in range(0, 3):
                 for j in range(0, 3):
                     print(t[i][j], end='\t')
                 print('\n')
-            print("You won\n")
+            print("Its a draw\n")
+            time.sleep(5)
+            exit(0)
+        elif (t[0][2] == user and t[2][0] == user) :
+            t[0][1] = comp
+            for i in range(0, 3):
+                for j in range(0, 3):
+                    print(t[i][j], end='\t')
+                print('\n')
+            print("Its a draw\n")
             time.sleep(5)
             exit(0)
         else :
@@ -105,17 +115,33 @@ elif start == 'comp' :
             upos1 = list(upos1)
             upos1 = list(map(int, upos1))
             t[upos1[0]][upos1[1]] = user
-            if (t[0][1] == user) or (t[0][2] == user) or (t[1][2] == user) :
+            if (t[1][1] == user and t[0][2] == user)  :
                 t[2][0] = comp
+                for i in range(0, 3):
+                    for j in range(0, 3):
+                        print(t[i][j], end='\t')
+                    print('\n')
+                print("Computer Won")
+                time.sleep(5)
+                exit(0)
+            elif (t[1][1] == user and t[2][0] == user):
+                t[0][2] = comp
+                for i in range(0, 3):
+                    for j in range(0, 3):
+                        print(t[i][j], end='\t')
+                    print('\n')
+                print("Computer Won")
+                time.sleep(5)
+                exit(0)
             else :
-                t[1][2] = comp
-            for i in range(0, 3):
-                for j in range(0, 3):
-                    print(t[i][j], end='\t')
-                print('\n')
-            print("Computer Won")
-            time.sleep(5)
-            exit(0)
+                for i in range(0, 3):
+                    for j in range(0, 3):
+                        print(t[i][j], end='\t')
+                    print('\n')
+                print("Its a draw")
+                time.sleep(5)
+                exit(0)
+
         else :
             for i in range(0, 3):
                 for j in range(0, 3):
