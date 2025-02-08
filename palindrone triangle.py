@@ -1,5 +1,5 @@
 r=0
-n=9
+n=12
 x=' '
 for i in range (1,n):
     print((n-i-1)*x,end="")
