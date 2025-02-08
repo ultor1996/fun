@@ -1,1 +1,2 @@
-Currently working on tic tack toe but you can play others
+Fun stuff an important stuff
+
