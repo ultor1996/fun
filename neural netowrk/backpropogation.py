@@ -235,7 +235,7 @@ class Neuron:
 
     def __call__(self, x):#calculates the conitribution and out to one node
         # w * x + b
-          act=Value(0.0)
+          act=self.b
           for wi, xi in zip(self.w,x): # zip(self.w,x) pairs up corresponidng elements of w with x in a tuple
               act+=wi.__mul__(xi)
           out=act.tanh() # pass the sum thorugh the activation function, by translation act is alos object of class value
@@ -268,12 +268,16 @@ class MLP:
 
     def parameters(self):
         return [p for layer in self.layers for p in layer.parameters()]
-#x=[2.0,3.0,-1.0]
+#a=Neuron(3)
+#print(a.w)
+#print(a.b)
+x=[2.0,3.0,-1.0]
 n= MLP(3,[4,4,1])
-#draw_dot(n.__call__(x))
+print(n.layers[0].neurons[0].b)
+draw_dot(n.__call__(x))
 # example trainin
-xs = [  # thes tructure of inout is such because the first list is a 3 input vector for the first nde of the first layer
-        # and the first layer has 4 nodes so 3 X 4 matrice
+xs = [  # the srtucture of input is such because here we have 4 training datatsets for each of which we
+    # have predication given as ys down and each dataset has 3 inputs which go to all the nodes in the second layer
   [2.0, 3.0, -1.0],
   [3.0, -1.0, 0.5],
   [0.5, 1.0, 1.0],
@@ -281,8 +285,8 @@ xs = [  # thes tructure of inout is such because the first list is a 3 input vec
 ]
 #for x in xs:
  #   print(x)
-ys = [1.0, -1.0, -1.0, 1.0] # desired targets
-ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
-print(ypred)
+#ys = [1.0, -1.0, -1.0, 1.0] # desired targets
+#ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
+#print(ypred)
 # now we caluclate loss and minimize it
 loss = Value(0.0)
