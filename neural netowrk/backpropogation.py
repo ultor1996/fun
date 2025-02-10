@@ -26,6 +26,7 @@ class Value:
         return f"value(data={self.data})"  # f is fomratted print where you can print varibale isnide a given text  statement, also its an automatic print statemnet
 
     def __add__(self, other):
+        other =  other if isinstance(other,Value) else Value(other)
         out= Value(self.data + other.data, (self, other),
                      '+')  # add function show how to add the class objects and their elements individually
         def _backward():
@@ -34,7 +35,8 @@ class Value:
                                    #= t1.grad * 1 ( as t is in t1 via the '+' operand), here t1.grad=out.grad
         out._backward=_backward
         return out
-    def __mult__(self, other):
+    def __mul__(self, other):
+       other = other if isinstance(other, Value) else Value(other)
        out = Value(self.data * other.data, (self, other), '*')
 
        def _backward():
@@ -44,7 +46,20 @@ class Value:
 
        out._backward = _backward
        return out
+    def __pow__(self,other):
+       assert isinstance(other,(int,float)) ,"only supporting int/float powers for now"
+       out = Value(self.data**other,(self,),f'**{other}')
 
+       def _backward():
+           self.grad+=other*(self.data**(other-1))*out.grad
+    def __rmul__(self, other): # because a*b might work howevre b*a may not wok in pythob
+        return self.__mul__(other)
+    def __truediv__(self, other):
+        return self.__mul__(other.__pow__(-1))
+    def __neg__(self):
+        return self.__mul__(-1)
+    def __sub__(self,other):
+        return self.__add__(other.__neg__())
     def tanh(self):
         x=self.data
         t=(math.exp(2*x)-1)/(math.exp(2*x)+1)
@@ -57,6 +72,13 @@ class Value:
         out._backward = _backward
         return out
 
+    def exp(self):
+        x=self.data
+        out=Value(math.exp(x), (self,), 'exp')
+        def _backward():
+            self.grad+=math.exp(x)* out.grad
+        out._backward= _backward
+        return out
     def backward(self):
         topo = []
         visited = set()
@@ -76,10 +98,10 @@ class Value:
 a = Value(2.0,label='a')
 b = Value(-3.0,label='b')
 c = Value(10.0,label='c')
-e=a.__mult__(b); e.label='e'
+e=a.__mul__(b); e.label='e'
 d = e+c; d.label='d'
 f = Value(-2.0, label='f')
-L = d.__mult__(f); L.label = 'L'
+L = d.__mul__(f); L.label = 'L'
 #print(d._prev)
 from graphviz import Digraph
 def trace(root):
@@ -133,24 +155,24 @@ def lol(): # function to check various derivative or gradients here
     a = Value(2.0, label='a')
     b = Value(-3.0, label='b')
     c = Value(10.0, label='c')
-    e = a.__mult__(b);
+    e = a.__mul__(b);
     e.label = 'e'
     d = e + c;
     d.label = 'd'
     f = Value(-2.0, label='f')
-    L = d.__mult__(f);
+    L = d.__mul__(f);
     L.label = 'L'
     L1=L.data
 
     a = Value(2.0, label='a')
     b = Value(-3.0, label='b')
     c = Value(10.0, label='c')
-    e = a.__mult__(b);
+    e = a.__mul__(b);
     e.label = 'e'
     d = e + c;
     d.label = 'd'
     f = Value(-2.0, label='f')
-    L = d.__mult__(f);
+    L = d.__mul__(f);
     L.label = 'L'
     L2=L.data+h
 
@@ -175,8 +197,8 @@ w2 = Value(1.0, label='w2')
 # bias of the neuron
 b = Value(6.8813735870195432, label='b')
 # x1*w1 + x2*w2 + b
-x1w1 = x1.__mult__(w1); x1w1.label = 'x1*w1'
-x2w2 = x2.__mult__(w2); x2w2.label = 'x2*w2'
+x1w1 = x1.__mul__(w1); x1w1.label = 'x1*w1'
+x2w2 = x2.__mul__(w2); x2w2.label = 'x2*w2'
 x1w1x2w2 = x1w1 + x2w2; x1w1x2w2.label = 'x1*w1 + x2*w2'
 n = x1w1x2w2 + b; n.label = 'n'# the collective input of the previous tow neurons to the current neuron/node
 #draw_dot(n) # this shows the node contribution of the previous nodes/ neurons to the current one withput activation fcntion uncomment to plot
