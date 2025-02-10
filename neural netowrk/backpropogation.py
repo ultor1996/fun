@@ -1,8 +1,10 @@
 import math
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import graphviz
+import numpy as np
+from graphviz import Digraph
+import random
+import torch
+
 
 #def f(x):
  #   return 3*x**2-4*x+5
@@ -52,7 +54,7 @@ class Value:
 
        def _backward():
            self.grad+=other*(self.data**(other-1))*out.grad
-    def __rmul__(self, other): # because a*b might work howevre b*a may not wok in pythob
+    def __rmul__(self, other): # because a*b might work howevre b*a may not wok in python. Thes funciton dont need the _bakward funciotn as they use the ones already develioped for add, mul, tanh, exp
         return self.__mul__(other)
     def __truediv__(self, other):
         return self.__mul__(other.__pow__(-1))
@@ -103,7 +105,7 @@ d = e+c; d.label='d'
 f = Value(-2.0, label='f')
 L = d.__mul__(f); L.label = 'L'
 #print(d._prev)
-from graphviz import Digraph
+
 def trace(root):
     # builds a set of all nodes and edges in a graph
     nodes, edges = set(), set()
@@ -138,7 +140,8 @@ def draw_dot(root):
 
     #dot.render('forward_pass', format='png', view=True)# forward pass plot
     #dot.render('node_input', format='png', view=True)# node contribution plot
-    dot.render('node_out_activation', format='png', view=True)# node contribution with activation funciton pplot
+    #dot.render('node_out_activation', format='png', view=True)# node contribution with activation funciton pplot
+    dot.render('example_net', format='png', view=True)
     return dot
 L.grad=1.0
 f.grad=4.0
@@ -223,4 +226,63 @@ o=n.tanh(); o.label='o'
 #x2w2._backward()
 # now instead of calling backward again and again we can build toplogical sort done in value class, to do it automatically
 o.backward()
-draw_dot(o)
+#draw_dot(o)
+#start making  neural nets, here we will start upon developing neura; network layer
+class Neuron:
+    def __init__(self,nin):# nin is the number of inputs
+        self.w=[Value(random.uniform(-1,1)) for _ in range(nin)]# generate weights for differnet inputs in a list form. Number of weights is equal to the number of inputs i.e. the weight and the input vector has the same dimensionality
+        self.b=Value(random.uniform(-1,1))# geenrate the node bias
+
+    def __call__(self, x):#calculates the conitribution and out to one node
+        # w * x + b
+          act=Value(0.0)
+          for wi, xi in zip(self.w,x): # zip(self.w,x) pairs up corresponidng elements of w with x in a tuple
+              act+=wi.__mul__(xi)
+          out=act.tanh() # pass the sum thorugh the activation function, by translation act is alos object of class value
+          return out
+
+
+class Layer:
+
+    def __init__(self, nin, nout):# nin here is again number of inputs whereas nout is the number of neurons in the layer
+        self.neurons = [Neuron(nin) for _ in range(nout)]# here we are creating a list with the obejcts of class Neuron, so nin is the dimensionality if the neuron and nput is how many o fthem you nat in a layer
+
+    def __call__(self, x):
+        outs = [n.__call__(x) for n in self.neurons] #  the function __call__ in the class neuron for the calculation of out
+        return outs[0] if len(outs) == 1 else outs
+
+    def parameters(self):
+        return [p for neuron in self.neurons for p in neuron.parameters()]
+
+
+class MLP:
+
+    def __init__(self, nin, nouts): # nin is the number of inputs,here we make an objects out of layer class, nouts is now  list instead of numbr becaue we want list which number of neurons in each layer
+        sz = [nin] + nouts #concatenating the two lists so the frist elemtn will be the number of iputs of the dmensionality of the input layer and nouts list of number of neurons in each layer
+        self.layers = [Layer(sz[i], sz[i + 1]) for i in range(len(nouts))]# objects of class layer need 2 input one is the number of inputs and second is the dimeiosnality of the layer
+
+    def __call__(self, x):
+        for layer in self.layers:
+            x = layer.__call__(x)# the function __calls__ of layer class is used here
+        return x
+
+    def parameters(self):
+        return [p for layer in self.layers for p in layer.parameters()]
+#x=[2.0,3.0,-1.0]
+n= MLP(3,[4,4,1])
+#draw_dot(n.__call__(x))
+# example trainin
+xs = [  # thes tructure of inout is such because the first list is a 3 input vector for the first nde of the first layer
+        # and the first layer has 4 nodes so 3 X 4 matrice
+  [2.0, 3.0, -1.0],
+  [3.0, -1.0, 0.5],
+  [0.5, 1.0, 1.0],
+  [1.0, 1.0, -1.0],
+]
+#for x in xs:
+ #   print(x)
+ys = [1.0, -1.0, -1.0, 1.0] # desired targets
+ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
+print(ypred)
+# now we caluclate loss and minimize it
+loss = Value(0.0)
