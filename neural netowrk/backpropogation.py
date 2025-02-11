@@ -25,7 +25,7 @@ class Value:
         self.label=label
 
     def __repr__(self):
-        return f"value(data={self.data})"  # f is fomratted print where you can print varibale isnide a given text  statement, also its an automatic print statemnet
+        return f"Value(data={self.data})"  # f is fomratted print where you can print varibale isnide a given text  statement, also its an automatic print statemnet
 
     def __add__(self, other):
         other=other if isinstance(other,Value) else Value(other)
@@ -94,7 +94,7 @@ class Value:
                 topo.append(v)
         build_topo(self)
         self.grad=1.0
-        for node in reversed(topo): # then in this we go through the topo in opposite direction that is from 1st node to last
+        for node in reversed(topo): # then in this we go through the topo in opposite direction that is from 1st node to las
             node._backward()# to fill in the gradients going backwards to the first node
 
 
@@ -144,6 +144,7 @@ def draw_dot(root):
     #dot.render('node_out_activation', format='png', view=True)# node contribution with activation funciton pplot
     #dot.render('example_net', format='png', view=True)
     dot.render('neural_net_and_loss_for_example_at_281', format='png', view=True)
+    #dot.render('test_backwrad', format='png', view=True)
     return dot
 L.grad=1.0
 f.grad=4.0
@@ -191,8 +192,8 @@ lol()
 #plt.imshow(img)
 #plt.show()
 
-plt.plot(np.arange(-5,5,0.2), np.tanh(np.arange(-5,5,0.2)));# activation function
-plt.show();
+#plt.plot(np.arange(-5,5,0.2), np.tanh(np.arange(-5,5,0.2)));# activation function
+#plt.show();
 # inputs x1,x2
 x1 = Value(2.0, label='x1')
 x2 = Value(0.0, label='x2')
@@ -227,7 +228,7 @@ o=n.tanh(); o.label='o'
 #x1w1._backward()
 #x2w2._backward()
 # now instead of calling backward again and again we can build toplogical sort done in value class, to do it automatically
-o.backward()
+#o.backward()
 #draw_dot(o)
 #start making  neural nets, here we will start upon developing neura; network layer
 class Neuron:
@@ -243,6 +244,8 @@ class Neuron:
           out=act.tanh() # pass the sum thorugh the activation function, by translation act is alos object of class value
           return out
 
+    def parameters(self):
+       return self.w + [self.b]
 
 class Layer:
 
@@ -253,10 +256,15 @@ class Layer:
         outs = [n.__call__(x) for n in self.neurons] #  the function __call__ in the class neuron for the calculation of out
         return outs[0] if len(outs) == 1 else outs
 
+    #def parameters(self):
+      #  return [p for neuron in self.neurons for p in neuron.parameters()]
+
+
     def parameters(self):
-        return [p for neuron in self.neurons for p in neuron.parameters()]
-
-
+        params = []
+        for neuron in self.neurons:
+            params.extend(neuron.parameters())
+        return params
 class MLP:
 
     def __init__(self, nin, nouts): # nin is the number of inputs,here we make an objects out of layer class, nouts is now  list instead of numbr becaue we want list which number of neurons in each layer
@@ -269,10 +277,13 @@ class MLP:
         return x
 
     def parameters(self):
-        return [p for layer in self.layers for p in layer.parameters()]
-#a=Neuron(3)
-#print(a.w)
-#print(a.b)
+        params = []
+        for layer in self.layers:
+            params.extend(layer.parameters())
+        return params
+a=Neuron(3)
+print(a.w)
+print(a.b)
 #x=[2.0,3.0,-1.0]
 n= MLP(3,[4,4,1])
 #print(n.layers[0].neurons[0].b)
@@ -296,4 +307,6 @@ for ygt, yout in zip(ys, ypred):
  loss= loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
 print(loss)
 loss.backward()# calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
-draw_dot(loss)
+#for param in n.parameters():
+ #   print(f"Parameter grad: {param.grad}")
+#draw_dot(loss)
