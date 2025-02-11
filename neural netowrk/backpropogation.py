@@ -66,7 +66,7 @@ class Value:
         return self.__add__(other.__neg__())
     def tanh(self):
         x=self.data
-        t=(math.exp(2*x)-1)/(math.exp(2*x)+1)
+        t=(np.exp(2*x)-1)/(np.exp(2*x)+1)
         out =  Value (t,(self,),'tanh')
 
         def _backward():
@@ -261,10 +261,11 @@ class Layer:
       #  return [p for neuron in self.neurons for p in neuron.parameters()]
 
 
-    def parameters(self):
+    def parameters(self): # bascially here the parameters of each neuron in the layer are returned and added to the params
         params = []
         for neuron in self.neurons:
-            params.extend(neuron.parameters())
+            ps= neuron.parameters()
+            params.extend(ps)
         return params
 class MLP:
 
@@ -277,19 +278,22 @@ class MLP:
             x = layer.__call__(x)# the function __calls__ of layer class is used here
         return x
 
-    def parameters(self):
+    def parameters(self): # bascially calls the parapmeters in layers which calls the parpameters in neuron to add differennt weight and bisas to the params list
         params = []
         for layer in self.layers:
-            params.extend(layer.parameters())
+            ps = layer.parameters()
+            params.extend(ps)
         return params
 #a=Neuron(3)
 #print(a.w)
 #print(a.b)
 #x=[2.0,3.0,-1.0]
-n= MLP(3,[4,4,1])
+#n= MLP(3,[4,4,1])
+#print(len(n.parameters()))
 #print(n.layers[0].neurons[0].b)
 #draw_dot(n.__call__(x))
 # example trainin
+n= MLP(3,[4,4,1])
 xs = [  # the srtucture of input is such because here we have 4 training datatsets for each of which we
     # have predication given as ys down and each dataset has 3 inputs which go to all the nodes in the second layer
   [2.0, 3.0, -1.0],
@@ -300,14 +304,35 @@ xs = [  # the srtucture of input is such because here we have 4 training datatse
 #for x in xs:
  #   print(x)
 ys = [1.0, -1.0, -1.0, 1.0] # desired targets
-ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
-print(ypred)
+#ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
+#print(ypred)
 # now we caluclate loss and minimize it
-loss=Value(0.0)
-for ygt, yout in zip(ys, ypred):
- loss= loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
-print(loss)
-loss.backward()   # calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
+#loss=Value(0.0)
+#for ygt, yout in zip(ys, ypred):
+ #   loss= loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
+#print(loss)
+#loss.backward()   # calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
 #for param in n.parameters():
  #   print(f"Parameter grad: {param.grad}")
-draw_dot(loss)
+#draw_dot(loss)
+#ypred=[n.__call__(x) for x in xs]
+
+for k in range(50): # training loop first does forward pass anc=d clauclate the loss and then does a backward pas and updates the loss
+
+# forward pass
+    ypred=[n.__call__(x) for x in xs]
+    loss = Value(0.0)
+    for ygt, yout in zip(ys, ypred):
+       loss = loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
+
+# backward pass
+    for p in n.parameters():
+       p.grad = 0.0
+    loss.backward()
+
+# update
+    for p in n.parameters():
+        p.data += -0.05 * p.grad
+
+    print(k, loss.data)
+    print(ypred)
