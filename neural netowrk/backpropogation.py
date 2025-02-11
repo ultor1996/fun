@@ -53,7 +53,8 @@ class Value:
        out = Value(self.data**other,(self,),f'**{other}')
 
        def _backward():
-           self.grad+=other*(self.data**(other-1))*out.grad
+           self.grad= self.grad + other*(self.data**(other-1))*out.grad
+       out._backward=_backward
        return out
     def __rmul__(self, other): # because a*b might work howevre b*a may not wok in python. Thes funciton dont need the _bakward funciotn as they use the ones already develioped for add, mul, tanh, exp
         return self.__mul__(other)
@@ -281,9 +282,9 @@ class MLP:
         for layer in self.layers:
             params.extend(layer.parameters())
         return params
-a=Neuron(3)
-print(a.w)
-print(a.b)
+#a=Neuron(3)
+#print(a.w)
+#print(a.b)
 #x=[2.0,3.0,-1.0]
 n= MLP(3,[4,4,1])
 #print(n.layers[0].neurons[0].b)
@@ -306,7 +307,7 @@ loss=Value(0.0)
 for ygt, yout in zip(ys, ypred):
  loss= loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
 print(loss)
-loss.backward()# calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
+loss.backward()   # calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
 #for param in n.parameters():
  #   print(f"Parameter grad: {param.grad}")
-#draw_dot(loss)
+draw_dot(loss)
