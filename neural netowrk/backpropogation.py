@@ -28,7 +28,7 @@ class Value:
         return f"value(data={self.data})"  # f is fomratted print where you can print varibale isnide a given text  statement, also its an automatic print statemnet
 
     def __add__(self, other):
-        other =  other if isinstance(other,Value) else Value(other)
+        other=other if isinstance(other,Value) else Value(other)
         out= Value(self.data + other.data, (self, other),
                      '+')  # add function show how to add the class objects and their elements individually
         def _backward():
@@ -54,6 +54,7 @@ class Value:
 
        def _backward():
            self.grad+=other*(self.data**(other-1))*out.grad
+       return out
     def __rmul__(self, other): # because a*b might work howevre b*a may not wok in python. Thes funciton dont need the _bakward funciotn as they use the ones already develioped for add, mul, tanh, exp
         return self.__mul__(other)
     def __truediv__(self, other):
@@ -141,7 +142,8 @@ def draw_dot(root):
     #dot.render('forward_pass', format='png', view=True)# forward pass plot
     #dot.render('node_input', format='png', view=True)# node contribution plot
     #dot.render('node_out_activation', format='png', view=True)# node contribution with activation funciton pplot
-    dot.render('example_net', format='png', view=True)
+    #dot.render('example_net', format='png', view=True)
+    dot.render('neural_net_and_loss_for_example_at_281', format='png', view=True)
     return dot
 L.grad=1.0
 f.grad=4.0
@@ -271,10 +273,10 @@ class MLP:
 #a=Neuron(3)
 #print(a.w)
 #print(a.b)
-x=[2.0,3.0,-1.0]
+#x=[2.0,3.0,-1.0]
 n= MLP(3,[4,4,1])
-print(n.layers[0].neurons[0].b)
-draw_dot(n.__call__(x))
+#print(n.layers[0].neurons[0].b)
+#draw_dot(n.__call__(x))
 # example trainin
 xs = [  # the srtucture of input is such because here we have 4 training datatsets for each of which we
     # have predication given as ys down and each dataset has 3 inputs which go to all the nodes in the second layer
@@ -285,8 +287,13 @@ xs = [  # the srtucture of input is such because here we have 4 training datatse
 ]
 #for x in xs:
  #   print(x)
-#ys = [1.0, -1.0, -1.0, 1.0] # desired targets
-#ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
-#print(ypred)
+ys = [1.0, -1.0, -1.0, 1.0] # desired targets
+ypred=[n.__call__(x) for x in xs]# preiction of the nural network for now
+print(ypred)
 # now we caluclate loss and minimize it
-loss = Value(0.0)
+loss=Value(0.0)
+for ygt, yout in zip(ys, ypred):
+ loss= loss.__add__((yout.__sub__(ygt)).__pow__(2.0))
+print(loss)
+loss.backward()# calucalting the gradient of the whole netowrk with respect to loss as we have to finally minimise it
+draw_dot(loss)
