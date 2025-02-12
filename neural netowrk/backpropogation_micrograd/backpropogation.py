@@ -317,7 +317,7 @@ ys = [1.0, -1.0, -1.0, 1.0] # desired targets
 #draw_dot(loss)
 #ypred=[n.__call__(x) for x in xs]
 
-for k in range(50): # training loop first does forward pass anc=d clauclate the loss and then does a backward pas and updates the loss
+for k in range(20): # training loop first does forward pass anc=d clauclate the loss and then does a backward pas and updates the loss
 
 # forward pass
     ypred=[n.__call__(x) for x in xs]
