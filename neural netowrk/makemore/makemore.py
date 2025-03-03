@@ -2,11 +2,11 @@ import torch
 import matplotlib.pyplot as plt
 words=open('names.txt','r').read().splitlines() #raed the file and split it ijnto words and stor the words in python list word
 #print(words[1:])#first we build bigram model
-#b={}
+b={}
 
 #for w in words:
- #   chs=['<S>']+list(w)+['<E>']
-  #  for ch1,ch2 in zip(chs,chs[1:]): #prints the pair of the first two character
+ #  chs=['<S>']+list(w)+['<E>']
+  # for ch1,ch2 in zip(chs,chs[1:]): #prints the pair of the first two character
    #    bigram=(ch1,ch2)
     #   b[bigram]=b.get(bigram,0)+1# this counts the number of occurnaces of the bigram, the value for
                                 # the key bigram in the dictionary b is its occurence in the dictionary and since the keys are unique
@@ -39,9 +39,9 @@ plt.axis('off');
 #now we have the biagram frequncies in a matrix we calucalte the proabilities of occurnces which will be used further to predict the outcome
 p=N[0].float()#N[0] givses the whole first row
 p=p/p.sum()
-#print(p)
+print(p)
 g=torch.Generator().manual_seed(2147483647)#A Generator in PyTorch is a pseudorandom number generator that helps create reproducible random numbers. Let's break down your code
-torch.multinomial(p,num_samples=1, replacement=True, generator=g)# torcc.multinomial takesa probaility distribution and generates and integr sample which mimics the probability distribution
-)
+ix=torch.multinomial(p,num_samples=1, replacement=True, generator=g).item()# torcc.multinomial takesa probaility distribution and generates and integr sample which mimics the probability distribution
+print(itos[ix])
 
 
