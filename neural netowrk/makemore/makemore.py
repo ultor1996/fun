@@ -34,14 +34,71 @@ for i in range(27): #just a nicer way to visulaize the matrix N
        chstr = itos[i] + itos[j]
        plt.text(j, i, chstr, ha="center", va="bottom", color='gray')
        plt.text(j, i, N[i,j].item(), ha="center", va="top", color='gray')
-plt.axis('off');
+#plt.axis('off');
 #plt.show()# uncomment to see the plot
 #now we have the biagram frequncies in a matrix we calucalte the proabilities of occurnces which will be used further to predict the outcome
-p=N[0].float()#N[0] givses the whole first row
-p=p/p.sum()
-print(p)
-g=torch.Generator().manual_seed(2147483647)#A Generator in PyTorch is a pseudorandom number generator that helps create reproducible random numbers. Let's break down your code
-ix=torch.multinomial(p,num_samples=1, replacement=True, generator=g).item()# torcc.multinomial takesa probaility distribution and generates and integr sample which mimics the probability distribution
-print(itos[ix])
+#p=N[0].float()#N[0] givses the whole first row
+#p=p/p.sum()
+#print(p)
+#g=torch.Generator().manual_seed(2147483647)#A Generator in PyTorch is a pseudorandom number generator that helps create reproducible random numbers. Let's break down your code
+#ix=torch.multinomial(p,num_samples=1, replacement=True, generator=g).item()# torcc.multinomial takesa probaility distribution and generates and integr sample which mimics the probability distribution
+g = torch.Generator().manual_seed(2147483647)
+P=(N+1).float()
+P/=P.sum(1, keepdim=True)#sums the N matrix alonmg the row and stors it in a column matrix of dimen 1,27 # take care of braodcasting
+for i in range(30):
+    out=[]
+    ix=0
+    while True:
+        p = P[ix]  # N[0] givses the whole first row
+        #p = p / p.sum()
+        ix = torch.multinomial(p, num_samples=1, replacement=True, generator=g).item()  # torcc.multinomial takesa probaility distribution and generates and integr sample which mimics the probability distribution
+        out.append(itos[ix])
+        if ix == 0:
+            break
+    #print(''.join(out))
+
+# GOAL: maximize likelihood of the data w.r.t. model parameters (statistical modeling)
+# equivalent to maximizing the log likelihood (because log is monotonic)
+# equivalent to minimizing the negative log likelihood
+# equivalent to minimizing the average negative log likelihood
+
+# log(a*b*c) = log(a) + log(b) + log(c)
+log_likelihood = 0.0
+n = 0
+
+for w in words:
+#for w in ["andrejq"]:
+  chs = ['.'] + list(w) + ['.']
+  for ch1, ch2 in zip(chs, chs[1:]):
+    ix1 = stoi[ch1]
+    ix2 = stoi[ch2]
+    prob = P[ix1, ix2]
+    logprob = torch.log(prob)
+    log_likelihood += logprob
+    n += 1
+    #print(f'{ch1}{ch2}: {prob:.4f} {logprob:.4f}')
+
+print(f'{log_likelihood=}')
+nll = -log_likelihood
+print(f'{nll=}')
+print(f'{nll/n}')
+
+
+#now the neural netowrk approach
+# create the training set of bigrams (x,y)
+xs, ys = [], []
+
+for w in words[:1]:
+    chs = ['.'] + list(w) + ['.']
+    for ch1, ch2 in zip(chs, chs[1:]):
+        ix1 = stoi[ch1]
+        ix2 = stoi[ch2]
+        print(ch1, ch2)
+        xs.append(ix1)
+        ys.append(ix2)
+
+xs = torch.tensor(xs)
+ys = torch.tensor(ys)
+
 
 
