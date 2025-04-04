@@ -70,6 +70,7 @@ n = 0
 for w in words:
 #for w in ["andrejq"]:
   chs = ['.'] + list(w) + ['.']
+ # print(chs)
   for ch1, ch2 in zip(chs, chs[1:]):
     ix1 = stoi[ch1]
     ix2 = stoi[ch2]
@@ -157,7 +158,7 @@ for k in range(150):
     counts = logits.exp()  # counts, equivalent to N
     probs = counts / counts.sum(1, keepdims=True)  # probabilities for next character
     loss = -probs[torch.arange(num), ys].log().mean() + 0.01 * (W ** 2).mean()# this second part is the regularisation
-    print(loss.item())
+#    print(loss.item())
 
     # backward pass
     W.grad = None  # set to zero the gradient
@@ -189,7 +190,7 @@ for i in range(5):
         out.append(itos[ix])
         if ix == 0:
             break
-    print(''.join(out))
+  #  print(''.join(out))
 
 
 #trigram model
@@ -250,7 +251,7 @@ for k in range(150):
     counts = logits.exp()  # counts, equivalent to N
     probs = counts / counts.sum(1, keepdims=True)  # probabilities for next character
     loss = -probs[torch.arange(num), ys].log().mean() + 0.01 * (W ** 2).mean()
-    print(loss.item())
+ #   print(loss.item())
 
     # Backward pass
     W.grad = None  # set to zero the gradient
@@ -288,4 +289,4 @@ for i in range(5):
         # If we hit an end token, stop
         if ix3 == 0:
             break
-    print(''.join(out))
+ #   print(''.join(out))
