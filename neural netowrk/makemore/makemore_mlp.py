@@ -1,6 +1,12 @@
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt # for making figures
+#somethings to note #
+# make sure that your inital loss not is very high first make an educated guess for the problwm and make sure your loss and probab;lityt are near thatothersiwe epochs will be wasted sim ply brging down the loss
+# for this initialize your output laser weights by a small number to keep the loss low and keep your bias zero for this layer
+# Also due to the squashing functions we can have dead neurons as if the value inputeted to the tanh is big, then its opuput is 1 or -1 ahich makes it deravtive zero and hence due to chain rule it restricts the flow of gradient to neurons in the corresponding layer which can stop the l;earning proess for the neuron
+# for this just initalize the inital weights and bias with small number so that the input to tanh is low
+#better intializations
 words = open('names.txt', 'r').read().splitlines()
 chars = sorted(list(set(''.join(words))))
 stoi = {s:i+1 for i,s in enumerate(chars)}
@@ -52,7 +58,7 @@ n2 = int(0.9*len(words))
 Xtr, Ytr = build_dataset(words[:n1])
 Xdev, Ydev = build_dataset(words[n1:n2])
 Xte, Yte = build_dataset(words[n2:])
-
+print(Xtr)
 C=torch.randn((27,2))
 emb=C[X]    #important line it embeds the 2 dimseional X tensor into 2 dimseional space from C, here the
 print(emb.shape) # the shape of this array is 228146 x 3 x 2 as we have 228146 contexts, each context consists of 3 elements and each element is in a 2d space
@@ -94,7 +100,7 @@ lossi = []
 stepi = []
 for i in range(10000): # No we can add the mini batch to make it faster
     #minibatch ciontruct 
-    ix=torch.randint(0,Xtr.shape[0],(32,))
+
     # #forward pass
     emb = C[Xtr[ix]]
     h = torch.tanh(emb.view(-1, 6) @ W1 + b1)

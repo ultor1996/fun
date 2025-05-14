@@ -213,8 +213,8 @@ o=n.tanh(); o.label='o'
 #o.grad=1.0# again doing the derivative things
 #n.grad= 0.5#do/dn=1-tanh(n)**2=1-o**2=1-0.7071**2
 #b.grad=0.5#do/db=do/dn * dn/db=do/dn * 1
-#x1w1x2w2.grad=0.5#do/d(x1w1x2w2)=do/dn * dn/d(x1w1x2w2)= do/dn * 1
-#x2w2.grad=0.5#do/d(x2w2)=do/dn * dn/d(x1w1+x2w2) * d(x1w1x2w2)/d(x2w2)=do/dn * 1 *1
+#x1w1+x2w2.grad=0.5#do/d(x1w1x2w2)=do/dn * dn/d(x1w1x2w2)= do/dn * 1
+#x2w2.grad=0.5#do/d(x2w2)=do/dn * dn/d(x1w1+x2w2) * d(x1w1+x2w2)/d(x2w2)=do/dn * 1 *1
 #x1w1.grad=0.5#do/d(x1w1)=do/dn * dn/d(x1w1+x2w2) * d(x1w1x2w2)/d(x1w1)=do/dn * 1 *1
 #w1.grad= 1.0#do/d(w1)=do/dn * dn/d(x1w1+x2w2) * d(x1w1+x2w2)/d(x1w1) *d(x1w1)/d(w1)=do/dn *1 *1 *x1
 #w2.grad=0.0 #do/d(w1)=do/dn * dn/d(x1w1+x2w2) * d(x1w1+x2w2)/d(x2w2) *d(x2w2)/d(w2)=do/dn *1 *1 *x2
