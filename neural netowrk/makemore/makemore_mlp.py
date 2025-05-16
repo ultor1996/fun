@@ -5,8 +5,9 @@ import matplotlib.pyplot as plt # for making figures
 # make sure that your inital loss not is very high first make an educated guess for the problwm and make sure your loss and probab;lityt are near thatothersiwe epochs will be wasted sim ply brging down the loss
 # for this initialize your output laser weights by a small number to keep the loss low and keep your bias zero for this layer
 # Also due to the squashing functions we can have dead neurons as if the value inputeted to the tanh is big, then its opuput is 1 or -1 ahich makes it deravtive zero and hence due to chain rule it restricts the flow of gradient to neurons in the corresponding layer which can stop the l;earning proess for the neuron
-# for this just initalize the inital weights and bias with small number so that the input to tanh is low
-#better intializations
+# for this just initalize the inital weights and bias with 1/sqrt(n_in) where n_in is the number of features,becuase what this does is it brings the input values to the tanh function in the range such that neither they are very small so that during forward pass nothing is produced and the values are no that big otherwise
+# so that the flow a gradient in backpropogation is possible. Multiplying by that factor shifts the variance of the randomly assigned weights to that value which make sure that the product if the variance of the data inputted to the tanh is well behaved
+# Now this is done for the inital layer , what about the hidden layers. For hidden layers we do batch normalization meaning that before passing the layer through the non-leaner funation we gaussiansize the distribution of the neurons . This we do for each layer.
 words = open('names.txt', 'r').read().splitlines()
 chars = sorted(list(set(''.join(words))))
 stoi = {s:i+1 for i,s in enumerate(chars)}
