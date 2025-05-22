@@ -43,3 +43,111 @@ Xtr, Ytr = build_dataset(words[:n1])
 Xdev, Ydev = build_dataset(words[n1:n2])
 Xte, Yte = build_dataset(words[n2:])
 # basic prep done now to important stuff:
+def cmp(s,dt,t):
+    ex= torch.all(dt == t.grad).item() # matches the gradients exactly to each decinmal points
+    app = torch.allclose(dt, t.grad) # mathces within some tolerance
+    maxdiff = (dt -t.grad).abs().max().item()
+    print(f'{s:15s} | exact: {str(ex):5s} | approximate: {str(app):5s} | maxdiff: {maxdiff}')
+
+#neural network architecture
+n_embd = 10 # dimensionality if the chcrater embedding vectors
+n_hidden= 64 # number of neurons in the hidden layers
+
+g=torch.Generator().manual_seed(2147483647)
+C= torch.randn((vocab_size,n_embd),            generator=g) # embedding character layers
+
+#layer 1
+
+W1=torch.randn((n_embd * block_size), n_hidden, generator=g) * (5/3)/((n_embd * block_size)**0.5) # first layer  the post factor of 1/(n_embd * block_size)**0.5) is needed to unsre that the varance of the porduct of the wx+b is = 1, evne though this will work fine without the gain factor for first few or fthe first layer but later
+                                                                                                # in the deep layers this factor alone wont be enough to keep the output of the activateion layer uniformaly distributed in its range of -1,1 rather it will get concetrated around zero which hampers the abaility iof the neural network to learn. Now once the gain of 5/3 is added
+                                                                                                # the output of each activation layer maintains the uniformaity through the ranmge of -1,1 and does concetrate around zero. As being near to zero affects the strenghts of the forard pass signals weak.
+                                                                                                # the number 5/3 occurs when you navegare the tanh^2(x) with a pdf of nortmal distribuiotn over the whole range of -inf to inf and sqaure root it
+b1 = torch.randn(n_hidden,                        generator=g) * 0.1 # using b1 just for fun, it's useless because of BN
+# Layer 2
+W2 = torch.randn((n_hidden, vocab_size),          generator=g) * 0.1 # the prefactor here makes sure that intial loss and probability doistribution of the network equal to the theoretically what is expected as each character of lphabet should have equal probability so it should be equal to  -log(1/27). So here just reducing the variance of the gaussian from which the values are picked makes sure that the initial probability falls in that range.
+b2 = torch.randn(vocab_size,                      generator=g) * 0.1
+# BatchNorm parameters
+bngain = torch.randn((1, n_hidden))*0.1 + 1.0
+bnbias = torch.randn((1, n_hidden))*0.1
+
+parameters = [C, W1, b1, W2, b2, bngain, bnbias]
+print(sum(p.nelement() for p in parameters)) # number of parameters in total
+for p in parameters:
+  p.requires_grad = True
+
+#mini- batches
+
+batch_size=32
+n =  batch_size
+ix = torch.randint(0,Xtr.shape[0],(batch_size,), generator= g) # creates a list of random 32 indices from the total number of indicies in Xtr
+Xb, Yb =Xtr[ix], Ytr[ix]
+
+
+#forward pass in a more discretized way
+emb=C[Xb]# ebed the vectors into chracters
+embcat=emb.view(emb.shape[0],-1)
+
+# Linear Layer 1
+hprebn = embcat @ W1 + b1 # hidden layer pre activation layer
+# batch norm layer
+bnmeani=1/n*hprebn.sum(0, keepdim=True)
+bndiff=  hprebn - bnmeani
+bndiff2=bndiff**2
+bnvar=1/(n-1)*(bndiff2).sum(0,keepdim=True) # bessels correction to use n-1 as here we use clauclated sample mean not the true population mean
+bnvar_inv=(bnvar+ 1e-5)**(-0.5)
+bnraw= bndiff * bnvar_inv # this the trasnformation used to convert the  ouptu of the linear layer back into a normal distribution
+hpreact = bngain*bnraw +bnbias # ading two adtional parameter set like the bingain  and bnbias to so that the mean and the variance of the tranformed normal distribution has a little possibiliyy of variation
+#Non-lienarity
+h = torch.tanh(hpreact) # hidden layer activation
+#Linear layer 2
+logits= h @ W2 + b2 # ouput layer
+# cross entropy loss
+logit_maxes= logits.max(1, keepdim=True).values
+norm_logits= logits- logit_maxes #subtract max for numerical stability
+counts = norm_logits.exp()
+counts_sum = counts.sum(1,keepdim=True)
+counts_sum_inv=counts_sum**-1
+probs= counts* counts_sum_inv
+logprobs=probs.log()
+loss = -logprobs[range(n), Yb].mean()
+
+#Pytorch backward pass
+for p in parameters:
+    p.grad=None
+for t in [logprobs, probs, counts, counts_sum, counts_sum_inv, # afaik there is no cleaner way
+          norm_logits, logit_maxes, logits, h, hpreact, bnraw,
+         bnvar_inv, bnvar, bndiff2, bndiff, hprebn, bnmeani,
+         embcat, emb]:
+  t.retain_grad()
+loss.backward()
+loss
+# Excercise 1: backpropogate through the whole thing manually,
+# backpropogataing throigh exactly all of the variables
+# as tther are define in the forward pass above, one by one. PLEASE TAKE INTO CONSIDERATION THE SIZE OF MATRICES IT GIVE CLUES TO HOW TO STORE THE GRADIENTS
+
+dlogprobs=torch.zeros((n_embd * block_size),vocab_size) # or torch.zeros_like(logprobs)
+dlogprobs[range(n), Yb]=-1.0/n# loss= -sum(1,n)logprobs[xn,yn]/n => dlogprobs(xi,yi)= d(-sum(1,n)logprobs[xn,yn]/n)/d(logprobs(xi,yi))=-sum(1,n)del_in*del_in/n=-1.0/n
+cmp('logprobs', dlogprobs, logprobs)
+
+dprobs=torch.zeros((n_embd * block_size),vocab_size) # or torch.zeros_like(logprobs)
+dprobs= -1/n * (1/ probs)# dprobs= dloss/dlogprobs * dlogprobs/dprobs = -1/n * (1/ probs)
+cmp('probs', dprobs, probs)
+
+dcounts_sum_inv= (dprobs * counts).sum(1, keepdim=True)#dcounts_sum_inv=dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts_sum_inv= (-1/n * 1/prob * counts).sum(1, keepdim=True) as the dimension of the probs is 32 * 27 and of count_sum_inv is 32 *1 implies that the dierevative wrt each elemsnts in probs has to be summed across the 27 columns and stored into the repective row.
+cmp('counts_sum_inv', dcounts_sum_inv, counts_sum_inv)
+
+dcounts_sum= -dcounts_sum_inv * counts_sum**(-2)#dcounts_sum=dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts_sum_inv * dcounts_sum_inv/dcounts_sum= -dcounts_sum_inv * count_sum**(-2)
+cmp('counts_sum', dcounts_sum, counts_sum)
+
+dcounts= dprobs * counts_sum_inv + torch.ones_like(counts)*dcounts_sum # dcounts= dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts + dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts_sum_inv * dcounts_sum_inv/dcounts_sum *dcounts_sum/dcounts
+cmp('counts', dcounts, counts)
+
+dnorm_logits= dcounts * norm_logits.exp() #dnorm_logits= dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts * dcounts/dnorm_logits
+cmp('norm_logits', dnorm_logits, norm_logits)
+
+dlogit_maxes= (-dnorm_logits).sum(1, keepdim=True)#dnorm_logits= dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts * dcounts/dnorm_logits * dnorm_logits/dlogit_maxes , .sum() same logic as above for counts_sum_inv
+cmp('logit_maxes', dlogit_maxes, logit_maxes)
+
+dlogits= dnorm_logits.clone()+ F.one_hot(logits.max(1).indices, num_classes=logits.shape[1]) * dlogit_maxes#dnorm_logits= dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts * dcounts/dnorm_logits * dnorm_logits/dlogits clone soi that ther is a copy created. The second part we use one_hot encoding vector becasue the logit.max consist of the maximun of values in a given row. logits.max(1).indices find the index of the max in eaxh row adn thats where yopu get the 1 in one_hoot encoding and the second argument gives the size for the one_hot encoding vector which is number of columns here.
+cmp('logits', dlogits, logits)
+
