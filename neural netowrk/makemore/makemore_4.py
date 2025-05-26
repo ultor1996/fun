@@ -123,14 +123,14 @@ loss.backward()
 loss
 # Excercise 1: backpropogate through the whole thing manually,
 # backpropogataing throigh exactly all of the variables
-# as tther are define in the forward pass above, one by one. PLEASE TAKE INTO CONSIDERATION THE SIZE OF MATRICES IT GIVE CLUES TO HOW TO STORE THE GRADIENTS
+# as tther are define in the forward pass above, one by one. PLEASE TAKE INTO CONSIDERATION THE SHapes OF MATRICES IT GIVE CLUES TO HOW TO STORE THE GRADIENTS. Use .shape and print them and see how they are.
 
-dlogprobs=torch.zeros((n_embd * block_size),vocab_size) # or torch.zeros_like(logprobs)
+dlogprobs=  torch.zeros_like(logprobs) # or torch.zeros_like(logprobs)
 dlogprobs[range(n), Yb]=-1.0/n# loss= -sum(1,n)logprobs[xn,yn]/n => dlogprobs(xi,yi)= d(-sum(1,n)logprobs[xn,yn]/n)/d(logprobs(xi,yi))=-sum(1,n)del_in*del_in/n=-1.0/n
 cmp('logprobs', dlogprobs, logprobs)
 
 dprobs=torch.zeros((n_embd * block_size),vocab_size) # or torch.zeros_like(logprobs)
-dprobs= -1/n * (1/ probs)# dprobs= dloss/dlogprobs * dlogprobs/dprobs = -1/n * (1/ probs)
+dprobs= dlogprobs * (1/ probs)# dprobs= dloss/dlogprobs * dlogprobs/dprobs = -1/n * (1/ probs)
 cmp('probs', dprobs, probs)
 
 dcounts_sum_inv= (dprobs * counts).sum(1, keepdim=True)#dcounts_sum_inv=dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts_sum_inv= (-1/n * 1/prob * counts).sum(1, keepdim=True) as the dimension of the probs is 32 * 27 and of count_sum_inv is 32 *1 implies that the dierevative wrt each elemsnts in probs has to be summed across the 27 columns and stored into the repective row.
@@ -151,3 +151,69 @@ cmp('logit_maxes', dlogit_maxes, logit_maxes)
 dlogits= dnorm_logits.clone()+ F.one_hot(logits.max(1).indices, num_classes=logits.shape[1]) * dlogit_maxes#dnorm_logits= dloss/dlogprobs * dlogprobs/dprobs * dprobs/dcounts * dcounts/dnorm_logits * dnorm_logits/dlogits clone soi that ther is a copy created. The second part we use one_hot encoding vector becasue the logit.max consist of the maximun of values in a given row. logits.max(1).indices find the index of the max in eaxh row adn thats where yopu get the 1 in one_hoot encoding and the second argument gives the size for the one_hot encoding vector which is number of columns here.
 cmp('logits', dlogits, logits)
 
+dh= dlogits @ W2.T # t is the transpose here
+cmp('h', dh, h)
+
+dW2=h.T@dlogits
+cmp('W2', dW2, W2)
+
+db2= dlogits.sum(0)
+cmp('b2', db2, b2)
+
+dhpreact=dh * (1.0-h**2)
+cmp('hpreact', dhpreact, hpreact)
+
+dbngain = (dhpreact * bnraw).sum(0, keepdim=True) # the sum is across the columns or the dimsnion one has the size of bngain is 1 x n_hidden whihc will also be th size of the dbngain, so we sum the derivative contribution from all the elemsts acroos the respective rows
+cmp('bngain', dbngain, bngain)
+
+dbnbias = dhpreact.sum(0, keepdim=True)
+cmp('bnbias', dbnbias, bnbias)
+
+dbnraw= bngain * dhpreact
+cmp('bnraw', dbnraw, bnraw)
+
+dbnvar_inv= (dbnraw * bndiff).sum(0, keepdim= True)
+cmp('bnvar_inv', dbnvar_inv, bnvar_inv)
+
+dbnvar= dbnvar_inv * ((-0.5) * (bnvar +1e-5) ** (-1.5))
+cmp('bnvar', dbnvar, bnvar)
+
+dbndiff2= dbnvar * 1.0/(n-1) * torch.ones_like(bndiff2) # torch.one_like(bndiff2) because here the dimenionality of bnvar is 1 x n_hidden and dbndiff2 is n_hidden X n_hidden
+cmp('bndiff2', dbndiff2, bndiff2)
+
+dbndiff = dbnraw * bnvar_inv + 2.0*dbndiff2 * bndiff # bndiff is in two places one inn  bnraw and second in bndiff2
+cmp('bndiff', dbndiff, bndiff)
+
+dbnmeani = -dbndiff.sum(0, keepdim=True) # as meani is sum over the rows and a havs the dimsnions of 1 * n_hidden
+cmp('bnmeani', dbnmeani, bnmeani)
+
+dhprebn= dbndiff.clone() +1.0/n * (torch.ones_like(hprebn) * dbnmeani)
+cmp('hprebn', dhprebn, hprebn)
+
+dembcat = dhprebn @ W1.T
+cmp('embcat', dembcat, embcat)
+
+dW1 = embcat.T @ dhprebn
+cmp('W1', dW1, W1)
+
+db1= dhprebn.sum(0)
+cmp('b1', db1, b1)
+
+demb= dembcat.view(emb.shape) # becaus ethe shape of emb in batch size * blocksize * n_embd unlike the shape of embcat which is batchsize *(blocksize * n_embd) which is 2d unlike the first one whihc is 3d
+cmp('emb', demb, emb)
+
+dC = torch.zeros_like(C)
+for k in range(Xb.shape[0]):
+    for j in range(Xb.shape[1]): # here we moving across the tensor Xb
+        ix= Xb[k,j] # here we find the integer corrsoponoing the charcter from each element of X
+        dC[ix]+=demb[k,j] # so here we add the gradient in the demb corrseponding to a to a character into the row of the dC matrix correspodning to that character, adding because when a varable if part of multiplr fucntion then the gradient corresponding to that varbaible is equal to the sum of derovative for all the functions under consideration
+
+
+# Exercise 2: backprop through cross_entropy but all in one go
+# to complete this challenge look at the mathematical expression of the loss,
+# take the derivative, simplify the expression, and just write it out
+
+dlogits = F.softmax(logits,1) # teh derivation is in sheets where I solved it
+dlogits[range(n),Yb]-=1
+dlogits/=n # because of the 1/n for aveaegr eloss as we backprogarte throigh aveagrge loss
+cmp('logits',dlogits,logits)
