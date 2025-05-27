@@ -105,7 +105,7 @@ logits= h @ W2 + b2 # ouput layer
 logit_maxes= logits.max(1, keepdim=True).values
 norm_logits= logits- logit_maxes #subtract max for numerical stability
 counts = norm_logits.exp()
-counts_sum = counts.sum(1,keepdim=True) # keepdim true is necesarry to prevent broadcastign errors. For eg here if krrpdim= True was not there we would have a 32, tensor which would give an erro when needed to be broadcasted in the division counts/counts/sum where counts is 32 X 27 sand counts_sum is 32, as for broadcasting the 32 of 32, will coinsdered the number of columsn and 1 will be added to number of rows which messes upo the dimensality of matrices for division
+counts_sum = counts.sum(1,keepdim=True) # keepdim true is necesarry to prevent broadcastign errors. For eg here if krrpdim= True was not there we would have a 32, tensor which would give an erro when needed to be broadcasted in the division counts/counts/sum where counts is 32 X 27 sand counts_sum is 32, as for broadcasting the 32 of 32, will coinsdered the number of column.
 counts_sum_inv=counts_sum**-1
 probs= counts* counts_sum_inv
 logprobs=probs.log()
@@ -217,3 +217,7 @@ dlogits = F.softmax(logits,1) # teh derivation is in sheets where   I solved it
 dlogits[range(n),Yb]-=1
 dlogits/=n # because of the 1/n for aveaegr eloss as we backprogarte throigh aveagrge loss
 cmp('logits',dlogits,logits)
+
+
+dhprebn = bngain*bnvar_inv/n * (n*dhpreact - dhpreact.sum(0) - n/(n-1)*bnraw*(dhpreact*bnraw).sum(0)) # expression in the sheet derivation. Here the sum is across the rows ans the the batch is 32 dimesional as is spread across the rows which are 32. Here ths sum(0) and sum(0, keepdime=True) will work exactly the same as sum(0) will givee 64, and sum(0, keepdim=true) will give 64, 1 and when braodcasting apllies both are equivalent
+cmp('hprebn', dhprebn, hprebn)
