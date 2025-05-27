@@ -105,7 +105,7 @@ logits= h @ W2 + b2 # ouput layer
 logit_maxes= logits.max(1, keepdim=True).values
 norm_logits= logits- logit_maxes #subtract max for numerical stability
 counts = norm_logits.exp()
-counts_sum = counts.sum(1,keepdim=True)
+counts_sum = counts.sum(1,keepdim=True) # keepdim true is necesarry to prevent broadcastign errors. For eg here if krrpdim= True was not there we would have a 32, tensor which would give an erro when needed to be broadcasted in the division counts/counts/sum where counts is 32 X 27 sand counts_sum is 32, as for broadcasting the 32 of 32, will coinsdered the number of columsn and 1 will be added to number of rows which messes upo the dimensality of matrices for division
 counts_sum_inv=counts_sum**-1
 probs= counts* counts_sum_inv
 logprobs=probs.log()
@@ -157,7 +157,7 @@ cmp('h', dh, h)
 dW2=h.T@dlogits
 cmp('W2', dW2, W2)
 
-db2= dlogits.sum(0)
+db2= dlogits.sum(0) # here we didnt us the keepdim= True as the dimension as the decaltion of b2 or b1 i.e. (n_hidden,) allows for broadcasting and is efficient to use as the matrix is mumimally declared and it adds the bias on the fly repeatedly using the CPU memory which makes it very fast
 cmp('b2', db2, b2)
 
 dhpreact=dh * (1.0-h**2)
@@ -213,7 +213,7 @@ for k in range(Xb.shape[0]):
 # to complete this challenge look at the mathematical expression of the loss,
 # take the derivative, simplify the expression, and just write it out
 
-dlogits = F.softmax(logits,1) # teh derivation is in sheets where I solved it
+dlogits = F.softmax(logits,1) # teh derivation is in sheets where   I solved it
 dlogits[range(n),Yb]-=1
 dlogits/=n # because of the 1/n for aveaegr eloss as we backprogarte throigh aveagrge loss
 cmp('logits',dlogits,logits)
