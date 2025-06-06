@@ -74,8 +74,12 @@ class BatchNorm1d:
     def __call__(self, x):
         #forward pass
         if self.training:
-            xmean=x.mean(0, keepdim=True)# batch mean
-            xvar=x.var(0, keepdim=True) #batch variance
+            if x.ndim == 2:
+                dim = 0
+            elif x.ndim == 3: # because we are usign wavenet now
+                dim = (0, 1)
+            xmean = x.mean(dim, keepdim=True)  # batch mean
+            xvar = x.var(dim, keepdim=True)  # batch variance
         else:
             xmean=self.running_mean
             xvar= self.running_var
@@ -125,7 +129,7 @@ class FlattenConsecutive:
         B, T, C= x.shape
         x=x.view(B,T//self.n, C*self.n) # here the first dimsion reamins the same, the last dimeion which was the size of the embedding vector is now the number of the characters/elemnst * embedding dimension and for the seocnd dimesnionis T/n as we broke the context groups of n
         if x.shape[1]==1:
-            x=x.s.squeeze(1)
+            x=x.squeeze(1)
         self.out= x
         return self.out
 
@@ -146,8 +150,8 @@ class Sequential: # this class creates an object which is a array of differnet k
 #---------------------------------------------------------------------------------------------------
 torch.manual_seed(42)
 
-n_embd= 10 # the dimenionslaioty if the character embeddings vectors
-n_hidden = 200 # the number of the neurons in the hidden layer of the MLP
+n_embd= 24 # the dimenionslaioty if the character embeddings vectors
+n_hidden = 128 # the number of the neurons in the hidden layer of the MLP
 
 
 model=Sequential([Embedding(vocab_size, n_embd),
@@ -161,14 +165,10 @@ with torch.no_grad():
     model.layers[-1].weight*= 0.1 # last layer make less confident
 parameters = model.parameters()
 print(sum(p.nelement() for p in parameters)) # number of parametes in total
+
 for p in parameters:
     p.requires_grad = True
 
-# to see the tesnor structure of the layers
-for layer in  model.layers:
-    if layer.__class__.__name__ in ('Linear','BatchNorm1d','Tanh'):
-        print(layer.__class__.__name__,':',tuple(layer.shape))
-# optimization
 max_steps = 200000
 batch_size = 32
 lossi=[]
